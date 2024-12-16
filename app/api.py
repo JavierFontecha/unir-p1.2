@@ -51,7 +51,8 @@ def divide(op_1, op_2):
         if num_2 == 0:
             return ("Division by zero is not allowed", http.client.NOT_ACCEPTABLE, HEADERS)
 
-        return ("{}".format(CALCULATOR.divide(num_1, num_2)), http.client.OK, HEADERS)
+        result = CALCULATOR.divide(num_1, num_2)
+        return ("{}".format(int(result) if result.is_integer() else result), http.client.OK, HEADERS)
     except TypeError as e:
         # Manejo general de errores de conversión o tipos
         return (str(e), http.client.BAD_REQUEST, HEADERS)
