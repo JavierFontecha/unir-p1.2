@@ -71,7 +71,7 @@ class TestApi(unittest.TestCase):
             )
             self.assertEqual(
                 e.read().decode(),
-                "Division by zero is not allowed",
+                "Division by zero is not possible",
                 "El mensaje de error no coincide con lo esperado"
             )
 

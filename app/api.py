@@ -54,5 +54,3 @@ def divide(op_1, op_2):
             return (str(e), http.client.NOT_ACCEPTABLE, HEADERS)
         else:
             return (str(e), http.client.BAD_REQUEST, HEADERS)
-
-
