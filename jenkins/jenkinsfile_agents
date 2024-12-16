@@ -46,7 +46,7 @@ pipeline {
                     
                     java -jar /home/wiremock/wiremock-standalone-3.10.0.jar --root-dir=test/wiremock/ --port 9090 &
                     
-                    sleep 10
+                    sleep 5
                 '''
             }
         }
