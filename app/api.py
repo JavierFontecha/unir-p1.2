@@ -46,16 +46,13 @@ def multiply(op_1, op_2):
 def divide(op_1, op_2):
     try:
         num_1, num_2 = util.convert_to_number(op_1), util.convert_to_number(op_2)
-
-        # verificar divisor 0
-        if num_2 == 0:
-            return ("Division by zero is not allowed", http.client.NOT_ACCEPTABLE, HEADERS)
-
         result = CALCULATOR.divide(num_1, num_2)
         return ("{}".format(int(result) if result.is_integer() else result), http.client.OK, HEADERS)
     except TypeError as e:
-        # Manejo general de errores de conversión o tipos
-        return (str(e), http.client.BAD_REQUEST, HEADERS)
-
+        error_message = str(e)
+        if "Division by zero" in error_message:
+            return (str(e), http.client.NOT_ACCEPTABLE, HEADERS)
+        else:
+            return (str(e), http.client.BAD_REQUEST, HEADERS)
 
 
