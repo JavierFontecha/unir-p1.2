@@ -3,7 +3,7 @@ pipeline {
 
     environment {
         PYTHON_INTERPRETER='/home/venv1.2/bin/activate'
-        JMETER='/home/jmeter/apache-jmeter-5.6.3/bin/jmeter'
+        JMETER='/home/jmeter/apache-jmeter-5.6.3/bin/jmeter.sh'
     }
     
     stages {
@@ -83,15 +83,10 @@ pipeline {
         stage('preformance') {
             steps {
                 sh '''
-                $JMETER -n -t jmeter/suma-resta.jmx -f -l flask.jlt
+                $JMETER -n -t suma-resta.jmx -f -l suma-resta.jlt
                 '''
-                perfReport sourceDataFiles: 'flask.jtl'
+                perfReport sourceDataFiles: 'suma-resta.jtl'
             }
-        }
-    }
-    post {
-        always {
-            deleteDir()
         }
     }
 }
