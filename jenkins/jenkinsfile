@@ -5,7 +5,6 @@ pipeline {
         PYTHON_INTERPRETER='/home/venv1.2/bin/activate'
         JMETER='/home/jmeter/apache-jmeter-5.6.3/bin/jmeter.sh'
     }
-    
     stages {
         stage('tests') {
             parallel {
@@ -71,7 +70,6 @@ pipeline {
             steps{
                 sh '''
                     . $PYTHON_INTERPRETER > /dev/null 2>&1
-                    
                     bandit --exit-zero -r . -f custom -o bandit.out --msg-template "{abspath}:{line}: {severity}: {test_id}: {msg}"
                 '''
                 
@@ -83,7 +81,7 @@ pipeline {
         stage('preformance') {
             steps {
                 sh '''
-                $JMETER -n -t suma-resta.jmx -f -l suma-resta.jlt
+                $JMETER -n -t suma-resta.jmx -f -l suma-resta.jtl
                 '''
                 perfReport sourceDataFiles: 'suma-resta.jtl'
             }
