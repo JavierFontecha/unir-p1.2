@@ -99,7 +99,6 @@ pipeline {
                         conditionalCoverageTargets: '90,80,90',
                         onlyStable: false
                     )
-                    }
                 }
             }
         }
