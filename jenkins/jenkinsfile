@@ -64,6 +64,19 @@ pipeline {
         stage('preformance') {
             steps {
                 sh '''
+                . $PYTHON_INTERPRETER > /dev/null 2>&1
+                export PYTHONPATH=.
+                export FLASK_APP=app/api.py
+
+                API_STATUS=$(curl -s -o /dev/null -w "%{http_code}" http://127.0.0.1:5000)
+
+                if [ "$API_STATUS" -ne 200 ]; then
+                    echo "La API no está respondiendo. Iniciando Flask..."
+                    flask run &
+                else
+                    echo "La API ya está corriendo."
+                fi
+
                 $JMETER -n -t suma-resta.jmx -f -l suma-resta.jtl
                 '''
                 perfReport sourceDataFiles: 'suma-resta.jtl'
@@ -81,6 +94,7 @@ pipeline {
                         coberturaReportFile: 'coverage.xml',
                         lineCoverageTargets: '95,85,90',
                         conditionalCoverageTargets: '90,80,85',
+                        onlyStable: false
                     )
                 }
             }
