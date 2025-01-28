@@ -13,9 +13,11 @@ pipeline {
                         sh '''
                             . $PYTHON_INTERPRETER > /dev/null 2>&1
                             export PYTHONPATH=.
-                            pytest --junitxml=result.unit.xml test/unit || true
+                            coverage run --branch --source=app --omit=app/_init__.py,app/api.py -m pytest --junitxml=result.unit.xml test/unit || true
                         '''
                         junit 'result.unit.xml'
+
+                        stash includes: '.coverage', name: 'coverage-data'
                     }
                 }
                 stage('rest') {
@@ -84,9 +86,11 @@ pipeline {
         }
         stage('coverage'){
             steps {
+                unstash 'coverage-data'
+
                 sh '''
                     . $PYTHON_INTERPRETER > /dev/null 2>&1
-                    coverage run --branch --source=app --omit=app/_init__.py,app/api.py -m pytest test/unit
+                    coverage report
                     coverage xml
                 '''
                 catchError(buildResult: 'UNSTABLE', stageResult: 'FAILURE') {
