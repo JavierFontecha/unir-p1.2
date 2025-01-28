@@ -87,13 +87,17 @@ pipeline {
         stage('coverage'){
             steps {
                 unstash 'coverage-data'
-                catchError(buildResult: 'UNSTABLE', stageResult: 'FAILURE') {
                     sh '''
-                        . $PYTHON_INTERPRETER > /dev/null 2>&1
-                        coverage report
-                        coverage xml
-                    '''
-                    cobertura coberturaReportFile: 'coverage.xml', autoUpdateHealth: false, autoUpdateStability: false, conditionalCoverageTargets: '90, 80, 90', failNoReports: false, failUnstable: false, lineCoverageTargets: '95, 85, 95', maxNumberOfBuilds: 0, onlyStable: false, sourceEncoding: 'ASCII', zoomCoverageChart: false
+                    . $PYTHON_INTERPRETER > /dev/null 2>&1
+                    coverage report
+                    coverage xml
+                '''
+                
+                catchError(buildResult: 'UNSTABLE', stageResult: 'UNSTABLE') {
+                    cobertura coberturaReportFile: 'coverage.xml', conditionalCoverageTargets: '90,80,90', lineCoverageTargets: '95,85,95', onlyStable: false
+                }
+                script {
+                    echo "Current build result: ${currentBuild.result}"
                 }
             }
         }
