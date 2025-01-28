@@ -6,7 +6,7 @@ pipeline {
         JMETER='/home/jmeter/apache-jmeter-5.6.3/bin/jmeter.sh'
     }
     stages {
-        stage('tests') {
+        stage('funcionales') {
             parallel {
                 stage('unit') {
                     steps {
@@ -38,50 +38,54 @@ pipeline {
                 }
             }
         }
-        stage('static') {
-            steps {
-                catchError(buildResult: 'UNSTABLE', stageResult: 'FAILURE') {
-                    sh '''
-                        . $PYTHON_INTERPRETER > /dev/null 2>&1
-                        flake8 --exit-zero --format=pylint app >flake8.out
-                    '''
+        stage('no-funcionales') {
+            parallel {
+                stage('static') {
+                    steps {
+                        catchError(buildResult: 'UNSTABLE', stageResult: 'FAILURE') {
+                            sh '''
+                                . $PYTHON_INTERPRETER > /dev/null 2>&1
+                                flake8 --exit-zero --format=pylint app >flake8.out
+                            '''
+                        }
+
+                        recordIssues tools: [flake8(name: 'Flake8', pattern: 'flake8.out')], qualityGates: [[threshold: 8, type: 'TOTAL', unstable: true], [threshold: 10, type: 'TOTAL', unstable: false]]
+                    }
                 }
+                stage('security'){
+                    steps{
+                        catchError(buildResult: 'UNSTABLE', stageResult: 'FAILURE') {
+                            sh '''
+                                . $PYTHON_INTERPRETER > /dev/null 2>&1
+                                bandit --exit-zero -r . -f custom -o bandit.out --msg-template "{abspath}:{line}: [{test_id}] {msg}"
+                            '''
+                        }
 
-                recordIssues tools: [flake8(name: 'Flake8', pattern: 'flake8.out')], qualityGates: [[threshold: 8, type: 'TOTAL', unstable: true], [threshold: 10, type: 'TOTAL', unstable: false]]
-            }
-        }
-        stage('security'){
-            steps{
-                catchError(buildResult: 'UNSTABLE', stageResult: 'FAILURE') {
-                    sh '''
-                        . $PYTHON_INTERPRETER > /dev/null 2>&1
-                        bandit --exit-zero -r . -f custom -o bandit.out --msg-template "{abspath}:{line}: [{test_id}] {msg}"
-                    '''
+                        recordIssues tools: [pyLint(name: 'Bandit', pattern: 'bandit.out')], qualityGates: [[threshold: 2, type: 'TOTAL', unstable: true], [threshold: 4, type: 'TOTAL', unstable: false]]
+                        
+                    }
                 }
+                stage('preformance') {
+                    steps {
+                        sh '''
+                        . $PYTHON_INTERPRETER > /dev/null 2>&1
+                        export PYTHONPATH=.
+                        export FLASK_APP=app/api.py
 
-                recordIssues tools: [pyLint(name: 'Bandit', pattern: 'bandit.out')], qualityGates: [[threshold: 2, type: 'TOTAL', unstable: true], [threshold: 4, type: 'TOTAL', unstable: false]]
-                
-            }
-        }
-        stage('preformance') {
-            steps {
-                sh '''
-                . $PYTHON_INTERPRETER > /dev/null 2>&1
-                export PYTHONPATH=.
-                export FLASK_APP=app/api.py
+                        API_STATUS=$(curl -s -o /dev/null -w "%{http_code}" http://127.0.0.1:5000)
 
-                API_STATUS=$(curl -s -o /dev/null -w "%{http_code}" http://127.0.0.1:5000)
+                        if [ "$API_STATUS" -ne 200 ]; then
+                            echo "La API no está respondiendo. Iniciando Flask..."
+                            flask run &
+                        else
+                            echo "La API ya está corriendo."
+                        fi
 
-                if [ "$API_STATUS" -ne 200 ]; then
-                    echo "La API no está respondiendo. Iniciando Flask..."
-                    flask run &
-                else
-                    echo "La API ya está corriendo."
-                fi
-
-                $JMETER -n -t suma-resta.jmx -f -l suma-resta.jtl
-                '''
-                perfReport sourceDataFiles: 'suma-resta.jtl'
+                        $JMETER -n -t suma-resta.jmx -f -l suma-resta.jtl
+                        '''
+                        perfReport sourceDataFiles: 'suma-resta.jtl'
+                    }
+                }
             }
         }
         stage('coverage'){
