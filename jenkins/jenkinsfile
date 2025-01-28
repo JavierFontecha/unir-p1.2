@@ -96,8 +96,8 @@ pipeline {
                 catchError(buildResult: 'UNSTABLE', stageResult: 'FAILURE') {
                     cobertura(
                         coberturaReportFile: 'coverage.xml',
-                        lineCoverageTargets: '95,85,90',
-                        conditionalCoverageTargets: '90,80,85',
+                        lineCoverageTargets: '95,85,95',
+                        conditionalCoverageTargets: '90,80,90',
                         onlyStable: false
                     )
                 }
