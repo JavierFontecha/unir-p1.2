@@ -93,12 +93,7 @@ pipeline {
                         coverage report
                         coverage xml
                     '''
-                    cobertura(
-                        coberturaReportFile: 'coverage.xml',
-                        lineCoverageTargets: '95,85,95',
-                        conditionalCoverageTargets: '90,80,90',
-                        onlyStable: false
-                    )
+                    cobertura autoUpdateHealth: false, autoUpdateStability: false, conditionalCoverageTargets: '90, 80, 90', failNoReports: false, failUnstable: false, lineCoverageTargets: '95, 85, 95', maxNumberOfBuilds: 0, onlyStable: false, sourceEncoding: 'ASCII', zoomCoverageChart: false
                 }
             }
         }
