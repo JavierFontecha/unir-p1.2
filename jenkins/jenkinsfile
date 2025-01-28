@@ -10,14 +10,12 @@ pipeline {
             parallel {
                 stage('unit') {
                     steps {
-                        catchError(buildResult: 'UNSTABLE', stageResult: 'FAILURE') {
-                            sh '''
-                                . $PYTHON_INTERPRETER > /dev/null 2>&1
-                                export PYTHONPATH=.
-                                pytest --junitxml=result.unit.xml test/unit
-                            '''
-                            junit 'result*.xml'
-                        }
+                        sh '''
+                            . $PYTHON_INTERPRETER > /dev/null 2>&1
+                            export PYTHONPATH=.
+                            pytest --junitxml=result.unit.xml test/unit || true
+                        '''
+                        junit 'result.unit.xml'
                     }
                 }
                 stage('rest') {
@@ -27,17 +25,48 @@ pipeline {
                                 . $PYTHON_INTERPRETER > /dev/null 2>&1
                                 export PYTHONPATH=.
                                 export FLASK_APP=app/api.py
-                                export PYTHONPATH=.
                                 flask run &
-                                
                                 java -jar /home/wiremock/wiremock-standalone-3.10.0.jar --root-dir=test/wiremock/ --port 9090 &
-                    
                                 sleep 7
-                                pytest --junitxml=result.rest.xml test/rest
+                                pytest --junitxml=result.rest.xml test/rest || true
                             '''
+                            junit 'result.rest.xml'
                         }
                     }
                 }
+            }
+        }
+        stage('static') {
+            steps {
+                catchError(buildResult: 'UNSTABLE', stageResult: 'FAILURE') {
+                    sh '''
+                        . $PYTHON_INTERPRETER > /dev/null 2>&1
+                        flake8 --exit-zero --format=pylint app >flake8.out
+                    '''
+                }
+
+                recordIssues tools: [flake8(name: 'Flake8', pattern: 'flake8.out')], qualityGates: [[threshold: 8, type: 'TOTAL', unstable: true], [threshold: 10, type: 'TOTAL', unstable: false]]
+            }
+        }
+        stage('security'){
+            steps{
+                catchError(buildResult: 'UNSTABLE', stageResult: 'FAILURE') {
+                    sh '''
+                        . $PYTHON_INTERPRETER > /dev/null 2>&1
+                        bandit --exit-zero -r . -f custom -o bandit.out --msg-template "{abspath}:{line}: {severity}: {test_id}: {msg}"
+                    '''
+                }
+
+                recordIssues tools: [pyLint(name: 'Bandit', pattern: 'bandit.out')], qualityGates: [[threshold: 2, type: 'TOTAL', unstable: true], [threshold: 4, type: 'TOTAL', unstable: false]]
+                
+            }
+        }
+        stage('preformance') {
+            steps {
+                sh '''
+                $JMETER -n -t suma-resta.jmx -f -l suma-resta.jtl
+                '''
+                perfReport sourceDataFiles: 'suma-resta.jtl'
             }
         }
         stage('coverage'){
@@ -50,40 +79,10 @@ pipeline {
                 catchError(buildResult: 'UNSTABLE', stageResult: 'FAILURE') {
                     cobertura(
                         coberturaReportFile: 'coverage.xml',
-                        lineCoverageTargets: '100,0,90',
-                        conditionalCoverageTargets: '100,0,80',
+                        lineCoverageTargets: '95,85,90',
+                        conditionalCoverageTargets: '90,80,85',
                     )
                 }
-            }
-        }
-        
-        stage('static') {
-            steps {
-                sh '''
-                    . $PYTHON_INTERPRETER > /dev/null 2>&1
-                    flake8 --exit-zero --format=pylint app >flake8.out
-                '''
-                recordIssues tools: [flake8(name: 'Flake8', pattern: 'flake8.out')], qualityGates: [[threshold: 10, type: 'TOTAL', unstable: true], [threshold: 11, type: 'TOTAL', unstable: false]]
-            }
-        }
-        stage('security'){
-            steps{
-                sh '''
-                    . $PYTHON_INTERPRETER > /dev/null 2>&1
-                    bandit --exit-zero -r . -f custom -o bandit.out --msg-template "{abspath}:{line}: {severity}: {test_id}: {msg}"
-                '''
-                
-                recordIssues tools: [pyLint(name: 'Bandit', pattern: 'bandit.out')], qualityGates: [[threshold: 4, type: 'TOTAL', unstable: true], [threshold: 8, type: 'TOTAL', unstable: false]]
-                
-            }
-        }
-        
-        stage('preformance') {
-            steps {
-                sh '''
-                $JMETER -n -t suma-resta.jmx -f -l suma-resta.jtl
-                '''
-                perfReport sourceDataFiles: 'suma-resta.jtl'
             }
         }
     }
