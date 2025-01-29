@@ -9,8 +9,8 @@ pipeline {
         stage('funcionales') {
             parallel {
                 stage('unit') {
+                    agent { label 'master' }
                     steps {
-                        agent { label 'master' }
                         sh '''
                             . $PYTHON_INTERPRETER > /dev/null 2>&1
                             export PYTHONPATH=.
@@ -22,8 +22,8 @@ pipeline {
                     }
                 }
                 stage('rest') {
+                    agent { label 'master' }
                     steps {
-                        agent { label 'master' }
                         catchError(buildResult: 'UNSTABLE', stageResult: 'FAILURE') {
                             sh '''
                                 . $PYTHON_INTERPRETER > /dev/null 2>&1
@@ -43,8 +43,8 @@ pipeline {
         stage('no-funcionales') {
             parallel {
                 stage('static') {
+                    agent { label 'master' }
                     steps {
-                        agent { label 'master' }
                         catchError(buildResult: 'UNSTABLE', stageResult: 'FAILURE') {
                             sh '''
                                 . $PYTHON_INTERPRETER > /dev/null 2>&1
@@ -55,8 +55,8 @@ pipeline {
                     }
                 }
                 stage('security'){
+                    agent { label 'master' }
                     steps{
-                        agent { label 'master' }
                         catchError(buildResult: 'UNSTABLE', stageResult: 'FAILURE') {
                             sh '''
                                 . $PYTHON_INTERPRETER > /dev/null 2>&1
@@ -67,22 +67,15 @@ pipeline {
                     }
                 }
                 stage('preformance') {
+                    agent { label 'master' }
                     steps {
-                        agent { label 'master' }
-
                         sh '''
                         . $PYTHON_INTERPRETER > /dev/null 2>&1
                         export PYTHONPATH=.
                         export FLASK_APP=app/api.py
-
-                        API_STATUS=$(curl -s -o /dev/null -w "%{http_code}" http://127.0.0.1:5000)
-
-                        if [ "$API_STATUS" -ne 200 ]; then
-                            echo "La API no está respondiendo. Iniciando Flask..."
-                            flask run &
-                        else
-                            echo "La API ya está corriendo."
-                        fi
+                        flask run &
+                        
+                        sleep 5
 
                         $JMETER -n -t suma-resta.jmx -f -l suma-resta.jtl
                         '''
@@ -92,10 +85,10 @@ pipeline {
             }
         }
         stage('coverage'){
-            steps {
-                agent { label 'master' }
+            agent { label 'master' }
+            steps{
                 unstash 'coverage-data'
-                    sh '''
+                sh '''
                     . $PYTHON_INTERPRETER > /dev/null 2>&1
                     coverage report
                     coverage xml
@@ -109,7 +102,9 @@ pipeline {
     }
     post {
         always {
-            deleteDir()
+            node('master') {
+                deleteDir()
+            }
         }
     }
 }
