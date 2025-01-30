@@ -123,7 +123,15 @@ pipeline {
     }
     post {
         always {
-            cleanWs()
+            node('master') {
+                cleanWs()
+            }
+            node('agent1') {
+                cleanWs()
+            }
+            node('agent2') {
+                cleanWs()
+            }
         }
     }
 }
