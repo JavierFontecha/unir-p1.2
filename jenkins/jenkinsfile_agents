@@ -11,17 +11,16 @@ pipeline {
                 stage('unit') {
                     agent { label 'agent1' }
                     steps {
-                        sh '''
-                            whoami
-                            hostname
-                            echo ${WORKSPACE}
-                            echo ${NODE_NAME}
-                            . $PYTHON_INTERPRETER > /dev/null 2>&1
-                            export PYTHONPATH=.
-                            coverage run --branch --source=app --omit=app/_init__.py,app/api.py -m pytest --junitxml=result.unit.xml test/unit || true
-                        '''
-                        junit 'result.unit.xml'
-                        stash includes: '.coverage', name: 'coverage-data'
+                        catchError(buildResult: 'UNSTABLE', stageResult: 'FAILURE') {
+                            sh '''
+                                . $PYTHON_INTERPRETER > /dev/null 2>&1
+                                export PYTHONPATH=.
+                                coverage run --branch --source=app --omit=app/__init__.py,app/api.py -m pytest --junitxml=result.unit.xml test/unit || true
+                            '''
+                            junit 'result.unit.xml'
+
+                            stash includes: '.coverage', name: 'coverage-data'
+                        }
                     }
                 }
                 stage('rest') {
