@@ -73,6 +73,7 @@ pipeline {
                         if [ "$API_STATUS" -ne 200 ]; then
                             echo "La API no está respondiendo. Iniciando Flask..."
                             flask run &
+                            sleep 4
                         else
                             echo "La API ya está corriendo."
                         fi
